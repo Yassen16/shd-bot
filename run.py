@@ -11,21 +11,21 @@ from pyrogram.types import ReplyKeyboardMarkup, KeyboardButton
 from flask import Flask
 from threading import Thread
 
-# --- جزء السيرفر الوهمي عشان Render ميفصلش ---
+# --- الجزء اللي بيضحك على السيرفر (Flask Server) ---
 app = Flask('')
 
 @app.route('/')
 def home():
     return "Bot is Running Live 24/7"
 
-def run():
+def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
 def keep_alive():
-    t = Thread(target=run)
+    t = Thread(target=run_flask)
     t.start()
 
-# --- الثوابت ---
+# --- الثوابت (بياناتك زي ما هي) ---
 API_ID = 36043373
 API_HASH = "f0c672529a5ad1fa5fb051c395b7c67e"
 BOT_TOKEN = "8642516650:AAE6uFW0ccsZoHs3_z4BaqgXDG5zm5v3Zs0"
@@ -96,7 +96,8 @@ async def start_engine(client, message, data, sec):
 async def manager(client, message):
     uid = message.from_user.id; text = message.text; status = get_status(uid); db = load_db()
     if not text: return
-
+    
+    # تصفير الحالة
     main_btns = ["🚀 بدء الشد", "🛑 إيقاف الشد", "🎫 إنشاء كود", "📧 إضافة جيميل", "📊 عرض الأكواد", "👥 عرض المستخدمين", "❌ تعطيل اشتراك", "🔄 تحديث", "✅ تفعيل التواصل", "❌ تعطيل التواصل", "➕ إضافة مشرف", "➖ إزالة مشرف", "❓ الإرشادات"]
     if text in main_btns or text == "/start":
         user_states.pop(uid, None)
@@ -106,17 +107,7 @@ async def manager(client, message):
         if text in ["/start", "🔄 تحديث"]:
             return await message.reply(f"🔥 أهلاً يا <b>{status}</b>\n👨‍💻 المطور: {OWNER_USER}", reply_markup=main_kb(uid), parse_mode=enums.ParseMode.HTML)
 
-    if status == "guest" and text.startswith("SHD-"):
-        if text in db["codes"]:
-            expire = datetime.now() + timedelta(minutes=db["codes"][text])
-            db["users"][str(uid)] = {"expire_at": expire.isoformat()}
-            db.setdefault("used_codes", {})[text] = str(uid)
-            db["codes"].pop(text); save_db(db)
-            return await message.reply("✅ مبروك! اشتراكك اتفعل.", reply_markup=main_kb(uid))
-        return await message.reply("❌ الكود غلط.")
-
-    if status == "guest": return await message.reply(f"🚫 اشتراكك مش مفعل.\nتواصل مع: {OWNER_USER}")
-
+    # تشغيل الشد
     if text == "🚀 بدء الشد":
         if not db["emails"]: return await message.reply("❌ ضيف حسابات أولاً!")
         user_states[uid] = {"step": "L"}
@@ -138,9 +129,10 @@ async def manager(client, message):
                 sec = int(text); stop_shd[uid] = False; data = user_states[uid].copy()
                 user_states.pop(uid); asyncio.create_task(start_engine(client, message, data, sec))
             except: await message.reply("أرقام بس!")
-        # (باقي الأوامر زي ما هي...)
 
+# --- التشغيل النهائي المضمون لـ Render ---
 if __name__ == "__main__":
-    print("--- السيرفر الوهمي شغال والبوت بينطلق ---")
-    keep_alive() # دي اللي بتصحي السيرفر
-    bot.run()
+    print("--- Starting Server ---")
+    keep_alive() # بيشغل السيرفر الوهمي في الخلفية
+    print("--- Bot is Running ---")
+    bot.run() # بيشغل البوت
